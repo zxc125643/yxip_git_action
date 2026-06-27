@@ -239,15 +239,31 @@ def format_region(location):
     return "-".join(parts)
 
 
-def format_purity_text(purity):
-    level = PURITY_LEVEL_NAMES_ZH.get(purity["level"], purity["level"] or "未知")
+def format_remark(value):
+    value = re.sub(r"\s+", "_", str(value).strip())
+    value = value.replace("#", "-")
+    return value or "unknown"
+
+
+def purity_percent(purity):
     score = purity["score"]
-    return f"{level} {score}" if score != "" else level
+    if score == "":
+        return ""
+    return f"{round(float(score) / 5 * 100)}%"
+
+
+def format_purity_text(purity):
+    percent = purity_percent(purity)
+    if percent:
+        return percent
+    return PURITY_LEVEL_NAMES_ZH.get(purity["level"], purity["level"] or "未知")
 
 
 def format_remark_line(ip, record, purity):
     location = record.get("location") or {}
-    return f"{ip}#{format_region(location)} {format_purity_text(purity)}"
+    region = format_remark(format_region(location))
+    purity_text = format_remark(format_purity_text(purity))
+    return f"{ip}#{region}-{purity_text}"
 
 
 def classify_purity(record, expected_asns):
@@ -359,6 +375,7 @@ def write_purity_outputs(ips, ip_sources, output_with_remarks):
                 "region": region,
                 "status": purity["status"],
                 "purity_score": purity["score"],
+                "purity_percent": purity_percent(purity),
                 "purity_level": purity["level"],
                 "risk_label": purity["risk_label"],
                 "reasons": ";".join(purity["reasons"]),
@@ -376,8 +393,13 @@ def write_purity_outputs(ips, ip_sources, output_with_remarks):
         )
 
     write_ip_list("ip_clean.txt", clean_output)
+    write_ip_list("ip_plain.txt", clean_ips)
     with open("ip_purity.csv", "w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=list(rows[0].keys()) if rows else ["ip", "status"])
+        writer = csv.DictWriter(
+            file,
+            fieldnames=list(rows[0].keys()) if rows else ["ip", "status"],
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
 

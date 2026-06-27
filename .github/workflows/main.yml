@@ -41,7 +41,7 @@ jobs:
         run: |
           git config --global user.email "shrl007@163.com"
           git config --global user.name "JERRYZFC"
-          for file in ip.txt ip_clean.txt ip_purity.csv; do
+          for file in ip.txt ip_clean.txt ip_plain.txt ip_purity.csv; do
             if [ -e "$file" ]; then
               git add "$file"
             else
