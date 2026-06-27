@@ -33,8 +33,8 @@ GitHub Actions 自动抓取 Cloudflare 优选 IPv4，生成 `ip.txt`。
 开启纯净度后，`ip.txt` 和 `ip_clean.txt` 默认输出短备注，避免部分订阅生成器被空格解析坏：
 
 ```txt
-104.17.175.237#美国-California-San_Francisco-96%
-172.67.174.74#加拿大-Ontario-Toronto-96%
+104.17.175.237#美国-96%
+172.67.174.74#加拿大-96%
 ```
 
 同时会生成 `ip_plain.txt`，只包含纯净 IP、不带任何备注。若 `ip.txt` 订阅后无网络，可先用 `ip_plain.txt` 判断是否为备注格式兼容问题。

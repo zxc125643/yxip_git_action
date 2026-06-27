@@ -230,13 +230,7 @@ def purity_level(score):
 
 def format_region(location):
     country_code = str(location.get("country_code") or "").upper()
-    country = COUNTRY_NAMES_ZH.get(country_code) or location.get("country") or country_code or "未知地区"
-    parts = [country]
-    for key in ("state", "city"):
-        value = str(location.get(key) or "").strip()
-        if value and value not in parts:
-            parts.append(value)
-    return "-".join(parts)
+    return COUNTRY_NAMES_ZH.get(country_code) or location.get("country") or country_code or "未知地区"
 
 
 def format_remark(value):
