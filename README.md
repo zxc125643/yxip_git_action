@@ -52,3 +52,21 @@ GitHub Actions 自动抓取 Cloudflare 优选 IPv4，生成 `ip.txt`。
 测试页面：
 
 - `https://www.itdog.cn/ping/zzzyxhkfc.pages.dev`
+
+## 订阅转换配置
+
+仓库内置了一个带 AI 分流和国内图片/CDN 直连修正的订阅转换配置：
+
+- `custom/ACL4SSR_Online_Mini_MultiMode_AI_CNFix.ini`
+
+使用方式：
+
+1. 后台进入“订阅转换配置”。
+2. “订阅转换配置文件”选择“自定义”。
+3. 填入 raw 链接：
+
+```txt
+https://raw.githubusercontent.com/zxc125643/yxip_git_action/main/custom/ACL4SSR_Online_Mini_MultiMode_AI_CNFix.ini
+```
+
+这个配置会新增 `🤖 AI` 策略组，并让国内常见图片、静态资源、对象存储和 CDN 域名优先直连。为避免国内商品图、头像、封面图被误杀，默认不启用广告拦截规则。
