@@ -2,40 +2,55 @@ name: Update IP List
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # 每15分钟运行一次
-  workflow_dispatch: # 允许手动触发
-  push: # 允许提交触发
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-ip-list
+  cancel-in-progress: true
 
 jobs:
-
   update-ip-list:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-      
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests
-        pip install beautifulsoup4
-        
-    - name: Run script
-      run: python ${{ github.workspace }}/collect_ips.py
-        
-    - name: Commit and push changes
-      run: |
-        git config --global user.email "shrl007@163.com"
-        git config --global user.name "JERRYZFC"
-        if [ -n "$(git status --porcelain)" ]; then
-          git add ip.txt
-          git commit -m "Automatic update"
-          git push
-        else
-          echo "No changes detected, skipping commit."
-        fi
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run script
+        env:
+          CHECK_PURITY: ${{ vars.CHECK_PURITY }}
+          PURITY_FILTER: ${{ vars.PURITY_FILTER }}
+          OUTPUT_WITH_REMARKS: ${{ vars.OUTPUT_WITH_REMARKS }}
+          EXPECTED_ASN: ${{ vars.EXPECTED_ASN }}
+          REQUIRE_EXPECTED_ASN: ${{ vars.REQUIRE_EXPECTED_ASN }}
+          MIN_PURITY_SCORE: ${{ vars.MIN_PURITY_SCORE }}
+          EXTRA_SOURCES: ${{ vars.EXTRA_SOURCES }}
+          IPAPI_KEY: ${{ secrets.IPAPI_KEY }}
+        run: python ${{ github.workspace }}/collect_ips.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.email "shrl007@163.com"
+          git config --global user.name "JERRYZFC"
+          for file in ip.txt ip_clean.txt ip_purity.csv; do
+            if [ -e "$file" ]; then
+              git add "$file"
+            else
+              git rm -f --ignore-unmatch "$file"
+            fi
+          done
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Automatic update"
+            git push
+          else
+            echo "No changes detected, skipping commit."
+          fi
