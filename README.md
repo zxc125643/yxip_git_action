@@ -90,6 +90,6 @@ python3 scripts/local_cf_trace.py --host edgar.vegaavc.cn --input ip.txt --worke
 输出文件：
 
 - `ip_trace.csv`：详细检测报告，包含 `colo`、`loc`、延迟、错误信息。
-- `ip_traced.txt`：可读备注列表，例如 `104.17.x.x#SJC-US-96%`。
+- `ip_traced.txt`：可读备注列表，例如 `104.17.x.x#美国-SJC-96%`。
 
-注意：这个脚本必须在你实际使用的网络里运行。家宽、电信、联通、移动、VPS 跑出来的 `colo` 都可能不同。
+注意：这个脚本必须在你实际使用的网络里运行。家宽、电信、联通、移动、VPS 跑出来的 `colo` 都可能不同。`colo` 是 Cloudflare 接入机房代码；`loc` 是发起请求的客户端国家，不代表机房国家。

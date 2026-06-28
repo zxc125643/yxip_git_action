@@ -11,6 +11,65 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 IP_RE = re.compile(r"^\s*((?:\d{1,3}\.){3}\d{1,3})")
 PERCENT_RE = re.compile(r"(\d+%)")
 
+COLO_COUNTRY_ZH = {
+    "AMS": "荷兰",
+    "ARN": "瑞典",
+    "ATH": "希腊",
+    "ATL": "美国",
+    "BCN": "西班牙",
+    "BKK": "泰国",
+    "BLR": "印度",
+    "BOM": "印度",
+    "BRU": "比利时",
+    "CDG": "法国",
+    "CPH": "丹麦",
+    "DFW": "美国",
+    "DOH": "卡塔尔",
+    "DUB": "爱尔兰",
+    "DXB": "阿联酋",
+    "EWR": "美国",
+    "FCO": "意大利",
+    "FRA": "德国",
+    "GIG": "巴西",
+    "GRU": "巴西",
+    "HEL": "芬兰",
+    "HKG": "香港",
+    "IAD": "美国",
+    "ICN": "韩国",
+    "IST": "土耳其",
+    "JFK": "美国",
+    "JNB": "南非",
+    "KIX": "日本",
+    "KUL": "马来西亚",
+    "LAX": "美国",
+    "LHR": "英国",
+    "MAD": "西班牙",
+    "MAN": "英国",
+    "MEL": "澳大利亚",
+    "MEX": "墨西哥",
+    "MNL": "菲律宾",
+    "MRS": "法国",
+    "MXP": "意大利",
+    "NRT": "日本",
+    "ORD": "美国",
+    "OSL": "挪威",
+    "PER": "澳大利亚",
+    "PRG": "捷克",
+    "SEA": "美国",
+    "SFO": "美国",
+    "SIN": "新加坡",
+    "SJC": "美国",
+    "SYD": "澳大利亚",
+    "TLV": "以色列",
+    "TPE": "台湾",
+    "VIE": "奥地利",
+    "WAW": "波兰",
+    "YUL": "加拿大",
+    "YVR": "加拿大",
+    "YYZ": "加拿大",
+    "ZRH": "瑞士",
+}
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -109,6 +168,13 @@ def parse_trace_body(text):
     return trace
 
 
+def colo_region(colo):
+    if not colo:
+        return ""
+    country = COLO_COUNTRY_ZH.get(colo.upper())
+    return f"{country}-{colo.upper()}" if country else colo.upper()
+
+
 def check_ip(entry, host, path, port, timeout):
     ip = entry["ip"]
     started = time.perf_counter()
@@ -117,6 +183,7 @@ def check_ip(entry, host, path, port, timeout):
         "ok": False,
         "status_code": "",
         "colo": "",
+        "colo_region": "",
         "loc": "",
         "trace_ip": "",
         "http": "",
@@ -157,6 +224,7 @@ def check_ip(entry, host, path, port, timeout):
                 "ok": status_code == "200" and bool(trace.get("colo")),
                 "status_code": status_code,
                 "colo": trace.get("colo", ""),
+                "colo_region": colo_region(trace.get("colo", "")),
                 "loc": trace.get("loc", ""),
                 "trace_ip": trace.get("ip", ""),
                 "http": trace.get("http", ""),
@@ -176,7 +244,7 @@ def check_ip(entry, host, path, port, timeout):
 
 def trace_remark(row):
     if row["ok"]:
-        region = f"{row['colo']}-{row['loc']}" if row["loc"] else row["colo"]
+        region = row.get("colo_region") or row["colo"]
     else:
         region = "TRACE_FAIL"
     percent = row.get("purity_percent") or ""
@@ -189,6 +257,7 @@ def write_outputs(results, output_path, remark_output):
         "ok",
         "status_code",
         "colo",
+        "colo_region",
         "loc",
         "trace_ip",
         "http",
