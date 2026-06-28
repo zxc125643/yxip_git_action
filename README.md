@@ -70,3 +70,26 @@ https://raw.githubusercontent.com/zxc125643/yxip_git_action/main/custom/ACL4SSR_
 ```
 
 这个配置会新增 `🤖 AI` 策略组，并让国内常见图片、静态资源、对象存储和 CDN 域名优先直连。为避免国内商品图、头像、封面图被误杀，默认不启用广告拦截规则。
+
+## 本地 Cloudflare 机房检测
+
+`ipapi.is` 的国家信息不适合判断 Cloudflare Anycast IP 的真实接入地区。要看本地网络实际进哪个 Cloudflare 机房，请在本地 Linux 电脑上运行：
+
+```bash
+git clone https://github.com/zxc125643/yxip_git_action.git
+cd yxip_git_action
+python3 scripts/local_cf_trace.py --host 你的Cloudflare域名 --input ip.txt --workers 16
+```
+
+示例：
+
+```bash
+python3 scripts/local_cf_trace.py --host edgar.vegaavc.cn --input ip.txt --workers 16
+```
+
+输出文件：
+
+- `ip_trace.csv`：详细检测报告，包含 `colo`、`loc`、延迟、错误信息。
+- `ip_traced.txt`：可读备注列表，例如 `104.17.x.x#SJC-US-96%`。
+
+注意：这个脚本必须在你实际使用的网络里运行。家宽、电信、联通、移动、VPS 跑出来的 `colo` 都可能不同。

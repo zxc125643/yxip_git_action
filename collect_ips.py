@@ -233,6 +233,32 @@ def format_region(location):
     return COUNTRY_NAMES_ZH.get(country_code) or location.get("country") or country_code or "未知地区"
 
 
+def format_remark_region(record):
+    source = os.getenv("REMARK_REGION_SOURCE", "provider").strip().lower()
+    if source == "ipapi":
+        return format_region(record.get("location") or {})
+    if source == "none":
+        return ""
+
+    asn = record.get("asn") or {}
+    company = record.get("company") or {}
+    cloudflare_text = " ".join(
+        str(value or "")
+        for value in (
+            asn.get("org"),
+            asn.get("descr"),
+            asn.get("domain"),
+            company.get("name"),
+            company.get("domain"),
+        )
+    ).lower()
+    if "cloudflare" in cloudflare_text:
+        return "CF"
+
+    asn_number = asn.get("asn")
+    return f"AS{asn_number}" if asn_number else "节点"
+
+
 def format_remark(value):
     value = re.sub(r"\s+", "_", str(value).strip())
     value = value.replace("#", "-")
@@ -254,10 +280,9 @@ def format_purity_text(purity):
 
 
 def format_remark_line(ip, record, purity):
-    location = record.get("location") or {}
-    region = format_remark(format_region(location))
+    region = format_remark(format_remark_region(record))
     purity_text = format_remark(format_purity_text(purity))
-    return f"{ip}#{region}-{purity_text}"
+    return f"{ip}#{region}-{purity_text}" if region else f"{ip}#{purity_text}"
 
 
 def classify_purity(record, expected_asns):
