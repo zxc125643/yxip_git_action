@@ -18,6 +18,7 @@ MIN_PURITY="${MIN_PURITY:-80}"
 DEPLOY_WORKER="${DEPLOY_WORKER:-true}"
 RUN_SOCKS5="${RUN_SOCKS5:-true}"
 PUSH_TRACE="${PUSH_TRACE:-false}"
+PULL_REPO="${PULL_REPO:-true}"
 GIT_REMOTE="${GIT_REMOTE:-origin}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 
@@ -39,9 +40,11 @@ unset_proxy_env() {
 log "Entering repo: $REPO_DIR"
 cd "$REPO_DIR"
 
-if [ -d .git ]; then
+if is_true "$PULL_REPO" && [ -d .git ]; then
   log "Pulling latest GitHub results"
   git pull --ff-only "$GIT_REMOTE" "$GIT_BRANCH"
+else
+  log "Skipping repo pull because PULL_REPO=$PULL_REPO"
 fi
 
 if [ ! -f "$TRACE_INPUT" ]; then

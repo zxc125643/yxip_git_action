@@ -129,5 +129,6 @@ bash scripts/linux_daily_update.sh
 - `DEPLOY_WORKER=false`：只测速和生成结果，不部署 Worker。
 - `RUN_SOCKS5=false`：只更新 Cloudflare 优选 IP，不刷新 SOCKS5。
 - `PUSH_TRACE=true`：把 `ip_trace.csv`、`ip_traced.txt` 和最终 `cf_proxyip_list.txt` 推回 GitHub。
+- `PULL_REPO=false`：本地试跑时跳过 `git pull`。
 
 注意：SOCKS5 只是 Worker 的上游/中继能力，不建议把免费 SOCKS5 节点直接混进订阅 IP 列表。订阅侧继续使用 Cloudflare 优选 IP，Worker 侧再用 SOCKS5 做兜底或链式代理。
