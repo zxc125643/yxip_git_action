@@ -71,6 +71,12 @@ https://raw.githubusercontent.com/zxc125643/yxip_git_action/main/custom/ACL4SSR_
 
 这个配置会新增 `🤖 AI` 策略组，并让国内常见图片、静态资源、对象存储和 CDN 域名优先直连。为避免国内商品图、头像、封面图被误杀，默认不启用广告拦截规则。
 
+如果 AI 应用同时命中 `🤖 AI` 和 `🐟 漏网之鱼`，通常表示该应用有部分登录、风控、统计、资源域名没有被公开 AI 规则覆盖。仓库额外维护了：
+
+- `custom/AI_Supplement.list`
+
+这个补充列表会优先归入 `🤖 AI`。同时 `🐟 漏网之鱼` 策略组也加入了 `🤖 AI` 选项；如果某个 AI 应用仍然有请求落到漏网之鱼，可以临时把 `🐟 漏网之鱼` 也选到 `🤖 AI`，用于保持同一出口 IP 排查。
+
 ## 本地 Cloudflare 机房检测
 
 `ipapi.is` 的国家信息不适合判断 Cloudflare Anycast IP 的真实接入地区。要看本地网络实际进哪个 Cloudflare 机房，请在本地 Linux 电脑上运行：
