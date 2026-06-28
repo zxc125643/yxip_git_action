@@ -37,6 +37,29 @@ unset_proxy_env() {
   unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 }
 
+load_edgar_env() {
+  if [ -f "$EDGAR_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . "$EDGAR_DIR/.env"
+    set +a
+  fi
+}
+
+custom_socks5_value() {
+  if [ -n "${CUSTOM_SOCKS5:-}" ]; then
+    printf '%s' "$CUSTOM_SOCKS5"
+    return 0
+  fi
+  if [ -n "${CUSTOM_SOCKS5_FILE:-}" ] && [ -f "$CUSTOM_SOCKS5_FILE" ]; then
+    sed -n '1{s/[[:space:]]*$//;p;q;}' "$CUSTOM_SOCKS5_FILE"
+    return 0
+  fi
+  return 1
+}
+
+load_edgar_env
+
 log "Entering repo: $REPO_DIR"
 cd "$REPO_DIR"
 
@@ -85,15 +108,15 @@ else
   log "Skipping Worker deploy because DEPLOY_WORKER=$DEPLOY_WORKER"
 fi
 
-if is_true "$RUN_SOCKS5"; then
+if SOCKS5_VALUE="$(custom_socks5_value)"; then
+  log "Using custom SOCKS5 secret from CUSTOM_SOCKS5/CUSTOM_SOCKS5_FILE"
+  cd "$EDGAR_DIR"
+  unset_proxy_env
+  printf '%s' "$SOCKS5_VALUE" | npx wrangler secret put SOCKS5
+  cd "$REPO_DIR"
+elif is_true "$RUN_SOCKS5"; then
   log "Refreshing Worker SOCKS5 secret via existing manage.py"
   cd "$EDGAR_DIR"
-  if [ -f .env ]; then
-    set -a
-    # shellcheck disable=SC1091
-    . ./.env
-    set +a
-  fi
   python3 manage.py run
   cd "$REPO_DIR"
 else

@@ -130,5 +130,27 @@ bash scripts/linux_daily_update.sh
 - `RUN_SOCKS5=false`：只更新 Cloudflare 优选 IP，不刷新 SOCKS5。
 - `PUSH_TRACE=true`：把 `ip_trace.csv`、`ip_traced.txt` 和最终 `cf_proxyip_list.txt` 推回 GitHub。
 - `PULL_REPO=false`：本地试跑时跳过 `git pull`。
+- `CUSTOM_SOCKS5=用户:密码@IP:端口`：使用自己的 SOCKS5，并写入 Worker Secret `SOCKS5`。
+- `CUSTOM_SOCKS5_FILE=/path/to/socks5.txt`：从文件第一行读取自己的 SOCKS5，避免把账号密码直接写进 crontab。
 
 注意：SOCKS5 只是 Worker 的上游/中继能力，不建议把免费 SOCKS5 节点直接混进订阅 IP 列表。订阅侧继续使用 Cloudflare 优选 IP，Worker 侧再用 SOCKS5 做兜底或链式代理。
+
+如果你使用自己的 SOCKS5，推荐在 `/home/yi/projects/edgar3.0/.env` 增加：
+
+```bash
+CUSTOM_SOCKS5_FILE=/home/yi/projects/edgar3.0/custom_socks5.txt
+```
+
+然后把 SOCKS5 写到该文件第一行，格式为：
+
+```txt
+用户:密码@IP:端口
+```
+
+如果没有账号密码，则写：
+
+```txt
+IP:端口
+```
+
+这里不要加 `socks5://` 前缀；Worker Secret 里只需要地址本体。
