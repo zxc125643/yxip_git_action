@@ -99,3 +99,35 @@ python3 scripts/local_cf_trace.py --host edgar.vegaavc.cn --input ip.txt --worke
 - `ip_traced.txt`：可读备注列表，例如 `104.17.x.x#美国-SJC-96%`。
 
 注意：这个脚本必须在你实际使用的网络里运行。家宽、电信、联通、移动、VPS 跑出来的 `colo` 都可能不同。`colo` 是 Cloudflare 接入机房代码；`loc` 是发起请求的客户端国家，不代表机房国家。
+
+## Linux 定时任务合并
+
+你的 Linux 电脑上现有两类任务：
+
+- `update_proxyip.sh`：每天更新 Worker 的 `PROXYIP` / `PROXYIP_LIST`，但旧脚本依赖 `httpx`。
+- `run_manage.sh`：发现并测速 SOCKS5，更新 Worker Secret `SOCKS5`。
+
+仓库内新增了一个合并入口：
+
+```bash
+bash scripts/linux_daily_update.sh
+```
+
+推荐在 Linux 上用它替代原来的 `update_proxyip.sh`。它会先拉取 GitHub 最新 IP 结果，再从本地网络跑 `local_cf_trace.py`，然后用 `select_trace_ips.py` 按本地延迟和纯净度选出前 5 个 IP，部署到 Worker 的 `PROXYIP` / `PROXYIP_LIST`，最后继续调用原有 `manage.py run` 更新 SOCKS5。
+
+示例 crontab：
+
+```cron
+0 5 * * * cd /home/yi/yxip_git_action_trace && TRACE_HOST=edgar.vegaavc.cn EDGAR_DIR=/home/yi/projects/edgar3.0 PUSH_TRACE=true bash scripts/linux_daily_update.sh >> linux_daily_update.log 2>&1
+```
+
+常用开关：
+
+- `TRACE_INPUT=ip_clean.txt`：默认使用纯净 IP；没有该文件时自动退回 `ip.txt`。
+- `TOP_N=5`：部署到 Worker 的 IP 数量。
+- `MIN_PURITY=80`：如果 trace 结果带纯净度，只选不低于该百分比的 IP。
+- `DEPLOY_WORKER=false`：只测速和生成结果，不部署 Worker。
+- `RUN_SOCKS5=false`：只更新 Cloudflare 优选 IP，不刷新 SOCKS5。
+- `PUSH_TRACE=true`：把 `ip_trace.csv`、`ip_traced.txt` 和最终 `cf_proxyip_list.txt` 推回 GitHub。
+
+注意：SOCKS5 只是 Worker 的上游/中继能力，不建议把免费 SOCKS5 节点直接混进订阅 IP 列表。订阅侧继续使用 Cloudflare 优选 IP，Worker 侧再用 SOCKS5 做兜底或链式代理。
