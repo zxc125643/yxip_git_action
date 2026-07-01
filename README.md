@@ -154,3 +154,58 @@ IP:端口
 ```
 
 这里不要加 `socks5://` 前缀；Worker Secret 里只需要地址本体。
+
+## macOS 定时任务迁移
+
+macOS 不使用 systemd，推荐用用户级 `launchd` 定时运行。仓库新增了 macOS wrapper：
+
+```bash
+bash scripts/macos_daily_update.sh
+```
+
+它会复用 `scripts/linux_daily_update.sh` 的主逻辑，并额外处理 macOS 常见 PATH、当前仓库路径和本机配置文件。
+
+本机配置文件：
+
+```bash
+cp scripts/macos_daily_update.env.example scripts/macos_daily_update.env
+```
+
+常用配置：
+
+- `TRACE_HOST=edgar.vegaavc.cn`：用于本地 Cloudflare trace 的域名。
+- `EDGAR_DIR=$HOME/projects/edgar3.0`：Worker 项目目录。
+- `DEPLOY_WORKER=false`：未迁移 Worker 项目前建议保持关闭。
+- `RUN_SOCKS5=false`：未迁移 `manage.py` 前建议保持关闭。
+- `PUSH_TRACE=false`：需要把本机 trace 结果推回 GitHub 时再开启。
+
+安装每天 05:00 运行的 LaunchAgent：
+
+```bash
+REPO_DIR="$(pwd)"
+mkdir -p "$HOME/Library/LaunchAgents" "$REPO_DIR/logs"
+sed "s#__REPO_DIR__#$REPO_DIR#g" \
+  launchd/com.zxc125643.yxip-daily-update.plist.template \
+  > "$HOME/Library/LaunchAgents/com.zxc125643.yxip-daily-update.plist"
+launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.zxc125643.yxip-daily-update.plist"
+launchctl enable "gui/$(id -u)/com.zxc125643.yxip-daily-update"
+```
+
+立即试跑一次：
+
+```bash
+launchctl kickstart -k "gui/$(id -u)/com.zxc125643.yxip-daily-update"
+```
+
+查看日志：
+
+```bash
+tail -f logs/macos_daily_update.out.log logs/macos_daily_update.err.log
+```
+
+卸载定时任务：
+
+```bash
+launchctl bootout "gui/$(id -u)/com.zxc125643.yxip-daily-update"
+rm "$HOME/Library/LaunchAgents/com.zxc125643.yxip-daily-update.plist"
+```
