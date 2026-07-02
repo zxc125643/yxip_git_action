@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 IP_RE = re.compile(r"^\s*((?:\d{1,3}\.){3}\d{1,3})")
 PERCENT_RE = re.compile(r"(\d+%)")
+SCORE_RE = re.compile(r"(?<!\d)([0-5](?:\.\d+)?)\s*(?:分|/5)")
 
 COLO_COUNTRY_ZH = {
     "AMS": "荷兰",
@@ -78,10 +79,11 @@ def parse_args():
     parser.add_argument("--host", required=True, help="Your Cloudflare hostname, for example example.com")
     parser.add_argument("--input", default="ip.txt", help="Input file containing IPs or ip#remarks")
     parser.add_argument("--output", default="ip_trace.csv", help="CSV output path")
+    parser.add_argument("--purity-csv", default="ip_purity.csv", help="Optional purity CSV with raw scores")
     parser.add_argument(
         "--remark-output",
         default="ip_traced.txt",
-        help="Optional remark list output, for example ip#SJC-US-96%%. Use empty string to disable.",
+        help="Optional remark list output, for example ip#SIN-4.8分. Use empty string to disable.",
     )
     parser.add_argument("--path", default="/cdn-cgi/trace", help="Trace path")
     parser.add_argument("--port", type=int, default=443, help="HTTPS port")
@@ -91,7 +93,41 @@ def parse_args():
     return parser.parse_args()
 
 
-def parse_input(path):
+def parse_purity_score(text):
+    match = SCORE_RE.search(str(text or ""))
+    if not match:
+        return ""
+    try:
+        score = float(match.group(1))
+    except ValueError:
+        return ""
+    if 0 <= score <= 5:
+        return f"{score:.1f}"
+    return ""
+
+
+def load_purity_scores(path):
+    scores = {}
+    if not path:
+        return scores
+    try:
+        with open(path, "r", encoding="utf-8", newline="") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                ip = str(row.get("ip", "")).strip()
+                score = str(row.get("purity_score", "")).strip()
+                if ip and score:
+                    try:
+                        scores[ip] = f"{float(score):.1f}"
+                    except ValueError:
+                        pass
+    except FileNotFoundError:
+        pass
+    return scores
+
+
+def parse_input(path, purity_csv=""):
+    purity_scores = load_purity_scores(purity_csv)
     entries = []
     seen = set()
     with open(path, "r", encoding="utf-8") as file:
@@ -108,11 +144,13 @@ def parse_input(path):
                 continue
             seen.add(ip)
             percent_match = PERCENT_RE.search(line)
+            score = parse_purity_score(line) or purity_scores.get(ip, "")
             entries.append(
                 {
                     "ip": ip,
                     "input": line.strip(),
                     "purity_percent": percent_match.group(1) if percent_match else "",
+                    "purity_score": score,
                 }
             )
     return entries
@@ -193,6 +231,7 @@ def check_ip(entry, host, path, port, timeout):
         "gateway": "",
         "elapsed_ms": "",
         "purity_percent": entry.get("purity_percent", ""),
+        "purity_score": entry.get("purity_score", ""),
         "input": entry.get("input", ""),
         "error": "",
     }
@@ -247,8 +286,8 @@ def trace_remark(row):
         region = row.get("colo_region") or row["colo"]
     else:
         region = "TRACE_FAIL"
-    percent = row.get("purity_percent") or ""
-    return f"{row['ip']}#{region}-{percent}" if percent else f"{row['ip']}#{region}"
+    score = row.get("purity_score") or ""
+    return f"{row['ip']}#{region}-{score}分" if score else f"{row['ip']}#{region}"
 
 
 def write_outputs(results, output_path, remark_output):
@@ -267,6 +306,7 @@ def write_outputs(results, output_path, remark_output):
         "gateway",
         "elapsed_ms",
         "purity_percent",
+        "purity_score",
         "input",
         "error",
     ]
@@ -284,7 +324,7 @@ def write_outputs(results, output_path, remark_output):
 
 def main():
     args = parse_args()
-    entries = parse_input(args.input)
+    entries = parse_input(args.input, args.purity_csv)
     if args.limit > 0:
         entries = entries[: args.limit]
     if not entries:

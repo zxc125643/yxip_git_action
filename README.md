@@ -18,7 +18,7 @@ GitHub Actions 自动抓取 Cloudflare 优选 IPv4，生成 `ip.txt`。
 
 - `CHECK_PURITY=true`：开启纯净度检查，额外生成 `ip_clean.txt` 和 `ip_purity.csv`。
 - `PURITY_FILTER=true`：只把纯净 IP 写入 `ip.txt`。建议先观察 `ip_purity.csv` 后再开启。
-- `OUTPUT_WITH_REMARKS=true`：开启纯净度时按 `ip#地区-纯净度百分比` 格式输出；设为 `false` 可退回纯 IP。
+- `OUTPUT_WITH_REMARKS=true`：开启纯净度时按 `ip#地区-纯净度分数` 格式输出；设为 `false` 可退回纯 IP。
 - `EXPECTED_ASN=13335,209242`：期望的 Cloudflare ASN，可按需调整。
 - `REQUIRE_EXPECTED_ASN=true`：非期望 ASN 直接判为 dirty。
 - `MIN_PURITY_SCORE=4.2`：低于该分值不进入 `ip_clean.txt`。
@@ -33,8 +33,8 @@ GitHub Actions 自动抓取 Cloudflare 优选 IPv4，生成 `ip.txt`。
 开启纯净度后，`ip.txt` 和 `ip_clean.txt` 默认输出短备注，避免部分订阅生成器被空格解析坏：
 
 ```txt
-104.17.175.237#美国-96%
-172.67.174.74#加拿大-96%
+104.17.175.237#CF-4.8分
+172.67.174.74#CF-4.8分
 ```
 
 同时会生成 `ip_plain.txt`，只包含纯净 IP、不带任何备注。若 `ip.txt` 订阅后无网络，可先用 `ip_plain.txt` 判断是否为备注格式兼容问题。
@@ -96,7 +96,7 @@ python3 scripts/local_cf_trace.py --host edgar.vegaavc.cn --input ip.txt --worke
 输出文件：
 
 - `ip_trace.csv`：详细检测报告，包含 `colo`、`loc`、延迟、错误信息。
-- `ip_traced.txt`：可读备注列表，例如 `104.17.x.x#美国-SJC-96%`。
+- `ip_traced.txt`：可读备注列表，例如 `104.17.x.x#新加坡-SIN-4.8分`。
 
 注意：这个脚本必须在你实际使用的网络里运行。家宽、电信、联通、移动、VPS 跑出来的 `colo` 都可能不同。`colo` 是 Cloudflare 接入机房代码；`loc` 是发起请求的客户端国家，不代表机房国家。
 
@@ -125,10 +125,10 @@ bash scripts/linux_daily_update.sh
 
 - `TRACE_INPUT=ip_clean.txt`：默认使用纯净 IP；没有该文件时自动退回 `ip.txt`。
 - `TOP_N=5`：部署到 Worker 的 IP 数量。
-- `MIN_PURITY=80`：如果 trace 结果带纯净度，只选不低于该百分比的 IP。
+- `MIN_PURITY_SCORE=4.2`：如果 trace 结果带纯净度，只选不低于该 5 分制分数的 IP。
 - `DEPLOY_WORKER=false`：只测速和生成结果，不部署 Worker。
 - `RUN_SOCKS5=false`：只更新 Cloudflare 优选 IP，不刷新 SOCKS5。
-- `PUSH_TRACE=true`：把 `ip_trace.csv`、`ip_traced.txt` 和最终 `cf_proxyip_list.txt` 推回 GitHub。
+- `PUSH_TRACE=true`：把 `ip_trace.csv`、`ip_traced.txt`、`cf_proxyip_list.txt` 和 `cf_proxyip_labels.txt` 推回 GitHub。
 - `PULL_REPO=false`：本地试跑时跳过 `git pull`。
 - `CUSTOM_SOCKS5=用户:密码@IP:端口`：使用自己的 SOCKS5，并写入 Worker Secret `SOCKS5`。
 - `CUSTOM_SOCKS5_FILE=/path/to/socks5.txt`：从文件第一行读取自己的 SOCKS5，避免把账号密码直接写进 crontab。

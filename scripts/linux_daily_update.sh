@@ -15,6 +15,7 @@ TRACE_WORKERS="${TRACE_WORKERS:-16}"
 TRACE_TIMEOUT="${TRACE_TIMEOUT:-8}"
 TOP_N="${TOP_N:-5}"
 MIN_PURITY="${MIN_PURITY:-80}"
+MIN_PURITY_SCORE="${MIN_PURITY_SCORE:-4.2}"
 DEPLOY_WORKER="${DEPLOY_WORKER:-true}"
 RUN_SOCKS5="${RUN_SOCKS5:-true}"
 PUSH_TRACE="${PUSH_TRACE:-false}"
@@ -86,14 +87,16 @@ log "Selecting best PROXYIP values"
 python3 scripts/select_trace_ips.py \
   --input ip_trace.csv \
   --count "$TOP_N" \
-  --min-purity "$MIN_PURITY" \
+  --min-score "$MIN_PURITY_SCORE" \
   --env-output cf_proxyip.env \
-  --list-output cf_proxyip_list.txt
+  --list-output cf_proxyip_list.txt \
+  --labels-output cf_proxyip_labels.txt
 
 # shellcheck disable=SC1091
 . ./cf_proxyip.env
 log "Selected PROXYIP=$PROXYIP"
 log "Selected PROXYIP_LIST=$PROXYIP_LIST"
+log "Selected PROXYIP_LABELS=$PROXYIP_LABELS"
 
 if is_true "$DEPLOY_WORKER"; then
   log "Deploying Worker with selected Cloudflare IPs"
@@ -102,7 +105,8 @@ if is_true "$DEPLOY_WORKER"; then
   npx wrangler deploy \
     --var "PROXYIP:$PROXYIP" \
     --var "PROXY_FALLBACK:true" \
-    --var "PROXYIP_LIST:$PROXYIP_LIST"
+    --var "PROXYIP_LIST:$PROXYIP_LIST" \
+    --var "PROXYIP_LABELS:$PROXYIP_LABELS"
   cd "$REPO_DIR"
 else
   log "Skipping Worker deploy because DEPLOY_WORKER=$DEPLOY_WORKER"
@@ -126,7 +130,7 @@ fi
 if is_true "$PUSH_TRACE" && [ -d "$REPO_DIR/.git" ]; then
   log "Pushing local trace outputs to GitHub"
   cd "$REPO_DIR"
-  git add ip_trace.csv ip_traced.txt cf_proxyip.env cf_proxyip_list.txt
+  git add ip_trace.csv ip_traced.txt cf_proxyip.env cf_proxyip_list.txt cf_proxyip_labels.txt
   if git diff --cached --quiet; then
     log "No trace changes to commit"
   else

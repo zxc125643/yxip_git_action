@@ -272,10 +272,17 @@ def purity_percent(purity):
     return f"{round(float(score) / 5 * 100)}%"
 
 
+def purity_score_text(purity):
+    score = purity["score"]
+    if score == "":
+        return ""
+    return f"{float(score):.1f}分"
+
+
 def format_purity_text(purity):
-    percent = purity_percent(purity)
-    if percent:
-        return percent
+    score_text = purity_score_text(purity)
+    if score_text:
+        return score_text
     return PURITY_LEVEL_NAMES_ZH.get(purity["level"], purity["level"] or "未知")
 
 
